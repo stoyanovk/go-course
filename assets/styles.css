@@ -1,0 +1,163 @@
+/* Shared stylesheet for the Go course.
+   Every lesson and reference doc links this file so the course looks like one thing.
+   Clean, readable, Go-flavoured (cyan accent). Code blocks are first-class. */
+
+:root {
+  --paper: #fdfcf9;
+  --ink: #1b1f23;
+  --muted: #6a707c;
+  --rule: #e4e2da;
+  --accent: #007d9c;      /* Go cyan, darkened for contrast */
+  --accent-soft: #e2f2f7;
+  --js: #b4531f;          /* "coming from JS/TS" colour */
+  --js-soft: #f6ebe2;
+  --green: #3f7d38;
+  --green-soft: #eaf3e8;
+  --warn: #a8331f;
+  --warn-soft: #fbe9e4;
+  --code-bg: #f5f3ec;
+  --maxw: 44rem;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  padding: 3rem 1.5rem 6rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  font-size: 1.125rem;
+  line-height: 1.62;
+}
+
+main, header, footer { max-width: var(--maxw); margin-inline: auto; }
+
+/* ---- Header / kicker ---- */
+.kicker {
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+h1 { font-size: 2rem; line-height: 1.15; margin: 0 0 0.6rem; font-weight: 700; }
+h2 { font-size: 1.35rem; margin: 2.4rem 0 0.6rem; font-weight: 700; }
+h3 { font-size: 1.05rem; margin: 1.6rem 0 0.4rem; font-family: system-ui, sans-serif; }
+.lede { font-size: 1.2rem; color: var(--muted); margin: 0 0 1.5rem; }
+
+hr { border: none; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+p { margin: 0.9rem 0; }
+
+/* ---- Callouts ---- */
+.note, .js, .win, .warn {
+  border-left: 4px solid var(--rule);
+  background: #fff;
+  padding: 0.9rem 1.1rem;
+  margin: 1.4rem 0;
+  border-radius: 0 6px 6px 0;
+  font-size: 1rem;
+}
+.note { border-left-color: var(--accent); background: var(--accent-soft); }
+.js   { border-left-color: var(--js);     background: var(--js-soft); }
+.win  { border-left-color: var(--green);  background: var(--green-soft); }
+.warn { border-left-color: var(--warn);   background: var(--warn-soft); }
+.warn strong { color: var(--warn); }
+.callout-title {
+  font-family: system-ui, sans-serif;
+  font-weight: 700; font-size: 0.8rem; letter-spacing: 0.06em;
+  text-transform: uppercase; display: block; margin-bottom: 0.3rem;
+}
+.js .callout-title  { color: var(--js); }
+.win .callout-title { color: var(--green); }
+
+/* ---- Code ---- */
+code, kbd {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px;
+}
+pre {
+  background: #1c2128;
+  color: #e6edf3;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 1.2rem 0;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+/* tiny syntax tint for hand-marked spans */
+pre .kw  { color: #ff7b72; }   /* keyword */
+pre .fn  { color: #d2a8ff; }   /* func / type name */
+pre .str { color: #a5d6ff; }   /* string */
+pre .cm  { color: #8b949e; font-style: italic; }  /* comment */
+pre .hi  { background: rgba(0,157,180,0.22); border-radius: 3px; }  /* highlight */
+.filetag {
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem; color: var(--muted);
+  display: block; margin: 1.2rem 0 -0.6rem;
+}
+
+/* ---- Task box ---- */
+.task {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 1.2rem 1.3rem;
+  margin: 1.6rem 0;
+  background: #fff;
+}
+.task h3 { margin-top: 0; }
+.badge {
+  display: inline-block;
+  font-family: system-ui, sans-serif;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+  margin-bottom: 0.6rem;
+}
+ol, ul { padding-left: 1.3rem; }
+li { margin: 0.35rem 0; }
+
+/* ---- Quiz widget ---- */
+.quiz { margin: 1.4rem 0; }
+.quiz .q { font-weight: 700; margin-bottom: 0.6rem; }
+.quiz button {
+  display: block; width: 100%; text-align: left;
+  font-family: ui-monospace, Menlo, monospace; font-size: 0.95rem;
+  padding: 0.6rem 0.9rem; margin: 0.4rem 0;
+  border: 1px solid var(--rule); border-radius: 6px;
+  background: #fff; cursor: pointer; transition: background .15s;
+}
+.quiz button:hover { background: var(--accent-soft); }
+.quiz button.correct { border-color: var(--green); background: var(--green-soft); }
+.quiz button.wrong { border-color: var(--warn); background: var(--warn-soft); }
+.quiz .fb { font-size: 0.95rem; color: var(--muted); margin-top: 0.5rem; min-height: 1.2rem; font-family: system-ui, sans-serif; }
+
+/* ---- Tables ---- */
+table { border-collapse: collapse; width: 100%; margin: 1.2rem 0; font-size: 0.98rem; }
+th, td { border: 1px solid var(--rule); padding: 0.5rem 0.7rem; text-align: left; vertical-align: top; }
+th { background: #f2efe6; font-family: system-ui, sans-serif; font-size: 0.9rem; }
+td code { font-size: 0.85em; }
+
+/* ---- Footer nav ---- */
+footer { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--rule);
+  font-family: system-ui, sans-serif; font-size: 0.95rem; color: var(--muted); }
+footer a { display: inline-block; margin-right: 1.2rem; }
+
+.uk { color: var(--muted); font-style: italic; }  /* Ukrainian gloss */
+
+@media print {
+  body { background: #fff; font-size: 11pt; padding: 0; }
+  pre { background: #f4f4f4; color: #111; border: 1px solid #ccc; }
+  .task, .note, .js, .win, .warn { break-inside: avoid; }
+  footer, .quiz button { break-inside: avoid; }
+}

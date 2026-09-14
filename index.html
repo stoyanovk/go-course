@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Учим Go — главная курса</title>
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  .map { list-style: none; padding-left: 0; }
+  .map li { margin: 0.5rem 0; padding-left: 1.9rem; position: relative; }
+  .map li::before {
+    position: absolute; left: 0; top: 0.05rem;
+    font-family: ui-monospace, monospace; font-size: 0.85rem;
+  }
+  .map li.done::before { content: "✓"; color: var(--green); font-weight: 700; }
+  .map li.next::before { content: "▶"; color: var(--accent); }
+  .map li.todo::before { content: "·"; color: var(--muted); }
+  .map a { font-weight: 600; }
+  .blk { font-family: system-ui, sans-serif; font-size: 0.78rem; letter-spacing: 0.08em;
+         text-transform: uppercase; color: var(--accent); margin: 1.8rem 0 0.2rem; font-weight: 700; }
+  .sub { color: var(--muted); font-size: 0.95rem; }
+</style>
+</head>
+<body>
+<header>
+  <p class="kicker">Главная курса</p>
+  <h1>Учим Go — чтобы читать и писать <code>billboard</code></h1>
+  <p class="lede">Курс построен на твоём реальном проекте. Каждый урок указывает на
+  реальный файл в <code>~/Documents/projects/billboard</code>. Цель: читать
+  <code>list.go</code> и <code>update.go</code> без единой загадки, а потом писать в том
+  же стиле.</p>
+</header>
+
+<main>
+  <div class="win">
+    <span class="callout-title">3 рефлекса, которые надо переучить с TS</span>
+    <strong>Ошибки — это значения</strong> (нет try/catch) · <strong>значения
+    копируются</strong> (указатель-или-значение — реальный выбор) ·
+    <strong>конкурентность настоящая</strong> (общие данные требуют мьютекса). Эти три
+    темы возвращаются в каждом блоке.
+  </div>
+
+  <p class="blk">Блок 1 — читать код</p>
+  <p class="sub">Достаточно, чтобы прочитать <code>list.go</code> / <code>update.go</code> сверху донизу.</p>
+  <ul class="map">
+    <li class="next"><a href="lessons/0001-packages-modules-visibility.html">1 · Пакеты, модули и видимость</a></li>
+    <li class="todo">2 · Типы, структуры и ресиверы <span class="sub">— ресивер по значению vs по указателю</span></li>
+    <li class="todo">3 · Указатели и zero value <span class="sub">— <code>*uint</code>, <code>nil</code> vs пусто</span></li>
+    <li class="todo">4 · Слайсы и мапы <span class="sub">— <code>NormalizeGroups</code></span></li>
+    <li class="todo">5 · Интерфейсы (неявные) <span class="sub">— <code>sort.Interface</code>, <code>io.Closer</code></span></li>
+    <li class="todo">6 · Ошибки как значения <span class="sub">— <code>if err != nil</code>, оборачивание</span></li>
+    <li class="todo">7 · defer, panic, recover <span class="sub">— приём с commit/rollback в транзакции</span></li>
+  </ul>
+
+  <p class="blk">Блок 2 — писать код здесь</p>
+  <ul class="map">
+    <li class="todo">8 · Встраивание (композиция, не наследование)</li>
+    <li class="todo">9 · <code>encoding/json</code> и кастомные Marshal/Unmarshal</li>
+    <li class="todo">10 · <code>net/http</code>: сервер, хендлеры, middleware</li>
+    <li class="todo">11 · Конкурентность <span class="sub">— горутины, каналы, select, sync, context (в конце)</span></li>
+    <li class="todo">12 · Дженерики <span class="sub">— <code>Cache[K comparable, V any]</code></span></li>
+    <li class="todo">13 · <code>pgx</code> и база данных</li>
+  </ul>
+
+  <p class="blk">Блок 3 — инженерная обвязка</p>
+  <ul class="map">
+    <li class="todo">14 · Тулинг <span class="sub">— go build/vet, gofmt, golangci-lint, lets (параллельно с 8–10)</span></li>
+    <li class="todo">15 · Тестирование <span class="sub">— первый тест на <code>NormalizeGroups</code></span></li>
+  </ul>
+
+  <hr>
+  <p><strong>Справочник:</strong> <a href="reference/glossary.html">Глоссарий</a> —
+  источник истины по терминам.</p>
+  <p class="sub">Порядок: Блок 1 целиком → 8–10 + 14 параллельно → 11 (конкурентность) в конце.</p>
+</main>
+
+<footer>
+  <a href="lessons/0001-packages-modules-visibility.html">Начать Урок 1 →</a>
+  <a href="reference/glossary.html">Глоссарий</a>
+</footer>
+</body>
+</html>
