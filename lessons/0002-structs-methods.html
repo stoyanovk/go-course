@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок 2 · Структуры, методы, указатели</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<header>
+  <p class="kicker"><a href="../index.html">← Главная</a> · Блок A · Урок 2</p>
+  <h1>Структуры, методы и указатель vs значение</h1>
+  <p class="lede">Данные в Go живут в <strong>структурах</strong>, поведение — в
+  <strong>методах</strong>. А главная развилка урока — <strong>указатель или значение</strong>.
+  Это второй из трёх рефлексов курса: <em>в Go значения копируются</em>. Пропустишь эту
+  идею — будешь ловить баги «поменял, а не поменялось».</p>
+</header>
+
+<main>
+  <div class="win">
+    <span class="callout-title">Что ты сможешь после урока</span>
+    Объявить <code>struct</code>, создать его, повесить на него <strong>метод</strong>, и
+    осознанно выбрать <strong>ресивер по значению или по указателю</strong> — понимая, кто
+    получит копию, а кто оригинал.
+  </div>
+
+  <p class="hint">💡 В тёмных блоках жми <strong>▶ Запустить</strong> — Go выполнится в
+  браузере. Код можно менять прямо в поле.</p>
+
+  <div class="note">
+    <span class="callout-title">Быстрый повтор Урока 1</span>
+    Помнишь <code>zero value</code>? У каждого типа есть значение по умолчанию, «undefined»
+    в Go нет. Это правило сейчас пригодится: у новой структуры <strong>все поля сразу имеют
+    zero value</strong> — без всякой инициализации.
+  </div>
+
+  <h2>1. Структура — форма данных</h2>
+  <p>Структура объединяет именованные поля под одним типом. Это главный способ хранить
+  данные в Go (аналог типа-объекта из TS, но это и тип, и сами данные сразу).</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type User struct {
+    Name string
+    Age  int
+}
+
+func main() {
+    u := User{Name: "Костя", Age: 33}   // с именами полей — так и пиши
+    fmt.Println(u.Name, "-", u.Age)
+
+    var empty User                       // ничего не задали...
+    fmt.Printf("%+v\n", empty)           // ...но поля уже в zero value
+
+    empty.Name = "гость"                 // поле можно присвоить потом
+    fmt.Printf("%+v\n", empty)
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Если пришёл из TS</span>
+    В TS тип и объект — раздельно: <code>interface User</code> + литерал <code>{...}</code>.
+    В Go <code>type User struct{...}</code> — это сразу и тип, и «класс данных».
+    <code>%+v</code> в <code>Printf</code> печатает поля с именами — удобно для отладки.
+  </div>
+
+  <div class="quiz" data-answer="0">
+    <p class="q">Что в поле <code>Age</code> у <code>var u User</code> без инициализации?</p>
+    <button>0</button>
+    <button>undefined</button>
+    <button>nil</button>
+    <button>ошибка компиляции</button>
+    <p class="fb" data-ok="Да — zero value для int это 0. Структура заполняется zero value автоматически." data-no="Вспомни Урок 1: у int zero value = 0. Все поля новой структуры сразу в zero value."></p>
+  </div>
+
+  <h2>2. Метод — поведение на структуре</h2>
+  <p>Метод — это функция с <strong>ресивером</strong>: маленький аргумент в скобках
+  <em>перед</em> именем. Он говорит, к какому типу привязан метод.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type User struct {
+    Name string
+    Age  int
+}
+
+// (u User) — ресивер. Метод Greeting привязан к типу User.
+func (u User) Greeting() string {
+    return "Привет, " + u.Name
+}
+
+func main() {
+    u := User{Name: "Костя", Age: 33}
+    fmt.Println(u.Greeting())   // вызов через точку, как в TS
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Ресивер = твой <code>this</code></span>
+    В TS метод внутри класса, а <code>this</code> — неявный. В Go метод объявлен
+    <em>снаружи</em>, а «this» назван явно: <code>u</code> в <code>(u User)</code>. Заодно
+    вспомни Урок 1: <code>Greeting</code> с большой буквы — значит <strong>публичный</strong>
+    (виден из других пакетов).
+  </div>
+
+  <h2>3. Развилка урока: указатель vs значение 🔑</h2>
+  <p>Ресивер бывает двух видов, и разница огромная:</p>
+  <ul>
+    <li><code>(u User)</code> — <strong>по значению</strong>: метод получает <strong>копию</strong>.
+      Меняешь поля — меняется копия, оригинал цел.</li>
+    <li><code>(u *User)</code> — <strong>по указателю</strong>: метод получает <strong>адрес</strong>
+      оригинала. Меняешь поля — меняется оригинал.</li>
+  </ul>
+  <p>Запусти и сравни два метода <code>Birthday</code>:</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type User struct {
+    Name string
+    Age  int
+}
+
+// по ЗНАЧЕНИЮ: работает с копией → оригинал не изменится
+func (u User) BirthdayCopy() {
+    u.Age++
+}
+
+// по УКАЗАТЕЛЮ: работает с оригиналом → изменит по-настоящему
+func (u *User) BirthdayReal() {
+    u.Age++
+}
+
+func main() {
+    u := User{Name: "Костя", Age: 33}
+
+    u.BirthdayCopy()
+    fmt.Println("после Copy:", u.Age)   // всё ещё 33 — меняли копию
+
+    u.BirthdayReal()
+    fmt.Println("после Real:", u.Age)   // 34 — меняли оригинал
+}
+</textarea>
+  </div>
+
+  <div class="warn">
+    <span class="callout-title">Рефлекс #2 курса: значения копируются</span>
+    В TS объект — это ссылка: передал в функцию, поменял поле — поменялось везде. В Go
+    <strong>структура копируется при передаче</strong>. Хочешь менять оригинал — бери
+    ресивер <code>*User</code>. Забыл звёздочку — «поменял, а не поменялось». Это источник багов
+    №1 у тех, кто пришёл из JS/TS.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Какой ресивер реально изменит поле оригинала?</p>
+    <button>(u User)</button>
+    <button>(u *User)</button>
+    <button>оба одинаково</button>
+    <button>ни один</button>
+    <p class="fb" data-ok="Да — *User даёт адрес оригинала, поэтому изменение видно снаружи." data-no="Нет: (u User) меняет копию. Оригинал меняет только (u *User) — по указателю."></p>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Практическое правило (пока такое)</span>
+    Метод <strong>меняет</strong> структуру или структура «тяжёлая» → бери <code>*T</code>.
+    Метод только <strong>читает</strong> и структура маленькая → можно <code>T</code>.
+    <strong>Не мешай</strong> у одного типа: если хоть один метод на <code>*T</code> —
+    делай все на <code>*T</code>. Это идиома, дальше объясню почему.
+  </div>
+
+  <h2>4. Конструктор + возврат ошибки</h2>
+  <p>В Go нет слова <code>new</code> как в TS. Идиома — функция <code>NewX</code>, которая
+  собирает структуру и (если может пойти не так) возвращает <code>(*X, error)</code>.
+  Вот и повтор рефлекса #1 из Урока 1 — <strong>ошибки как значения</strong>.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+type User struct {
+    Name string
+    Age  int
+}
+
+// конструктор: проверяет ввод, возвращает (*User, error)
+func NewUser(name string, age int) (*User, error) {
+    if name == "" {
+        return nil, errors.New("имя пустое")
+    }
+    if age < 0 {
+        return nil, errors.New("возраст отрицательный")
+    }
+    return &User{Name: name, Age: age}, nil   // &User{...} — адрес новой структуры
+}
+
+func main() {
+    u, err := NewUser("Костя", 33)
+    if err != nil {                 // рефлекс #1: проверяем сразу
+        fmt.Println("ошибка:", err)
+        return
+    }
+    fmt.Printf("создан: %+v\n", *u) // *u — разыменовать указатель, увидеть значение
+
+    _, err2 := NewUser("", 10)
+    fmt.Println("пустое имя даёт ошибку?", err2 != nil)
+}
+</textarea>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Зачем это на бэкенде</span>
+    Так выглядит половина твоего будущего сервиса: <code>NewService(...)</code>,
+    <code>NewRepository(...)</code> — конструктор проверяет зависимости и возвращает
+    <code>(*T, error)</code>. <code>&amp;User{}</code> = «дай адрес», <code>*u</code> =
+    «дай значение по адресу». Эти два значка (<code>&amp;</code> и <code>*</code>) — весь
+    базовый набор по указателям.
+  </div>
+
+  <div class="quiz" data-answer="2">
+    <p class="q">Что означает <code>&amp;User{Name: "Костя"}</code>?</p>
+    <button>копию структуры User</button>
+    <button>интерфейс User</button>
+    <button>указатель на новую структуру User</button>
+    <button>вызов функции User</button>
+    <p class="fb" data-ok="Да — &amp; берёт адрес, получаем *User (указатель на новую структуру)." data-no="Нет: &amp; означает «взять адрес». &amp;User{...} даёт *User — указатель на новую структуру."></p>
+  </div>
+
+  <div class="task">
+    <span class="badge">Твоя очередь</span>
+    <h3>Собери всё вместе</h3>
+    <p>В поле ниже: у структуры <code>Counter</code> допиши метод <code>Inc()</code>, который
+    <strong>реально</strong> увеличивает поле <code>N</code> на 1. Подумай, какой нужен
+    ресивер — по значению или по указателю. Жми «Запустить»: должно вывести <code>3</code>.</p>
+    <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type Counter struct {
+    N int
+}
+
+// допиши метод Inc — он должен менять оригинал
+func (c Counter) Inc() {
+    // <- почини (и, возможно, ресивер тоже)
+}
+
+func main() {
+    c := Counter{}
+    c.Inc()
+    c.Inc()
+    c.Inc()
+    fmt.Println(c.N)   // цель: 3
+}
+</textarea>
+    </div>
+    <p class="hint">Подсказка: если после трёх <code>Inc()</code> печатает <code>0</code> —
+    ты меняешь копию. Вспомни развилку из раздела 3. Застрял — спроси учителя в чате.</p>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Эталонный источник</span>
+    Раздел <a href="https://go.dev/tour/methods/1">A Tour of Go — Methods and pointers</a>
+    (методы, указатели, ресиверы) — короткие запускаемые примеры. Плюс глава
+    «methods» и «pointers» в <a href="https://go.dev/doc/effective_go">Effective Go</a>.
+  </div>
+
+  <hr>
+  <p><strong>Термины урока</strong> — в <a href="../reference/glossary.html">глоссарии</a>:
+  структура, ресивер метода, указатель, zero value. <strong>Спроси учителя</strong> в чате
+  по любому непонятному месту — я для этого здесь.</p>
+</main>
+
+<footer>
+  <a href="0001-go-syntax.html">← Урок 1</a>
+  <a href="../index.html">Главная</a>
+  <a href="../reference/glossary.html">Глоссарий</a>
+  <span class="uk">Дальше: Урок 3 — Конкурентность (скоро)</span>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sandbox.js"></script>
+</body>
+</html>
