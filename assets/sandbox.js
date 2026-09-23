@@ -46,11 +46,14 @@
       if (typeof Go === "undefined") await loadScript(base + "wasm_exec.js");
       var go = new Go();
       var instance;
+      // The wasm is ~39MB — larger than jsDelivr's per-file gh limit, so it is served
+      // straight from GitHub Pages (same origin). CDN kept only as a fallback in case a
+      // smaller (trimmed) build is published under the tag later.
       try {
-        instance = await instantiateFrom(CDN, go.importObject);
-      } catch (e) {
-        if (onProgress) onProgress("CDN недоступен, беру локальный файл…");
         instance = await instantiateFrom(LOCAL, go.importObject);
+      } catch (e) {
+        if (onProgress) onProgress("локальный файл недоступен, пробую CDN…");
+        instance = await instantiateFrom(CDN, go.importObject);
       }
       go.run(instance); // starts main(), registers window.runGo, then yields
       for (var i = 0; i < 250 && typeof window.runGo !== "function"; i++) {
