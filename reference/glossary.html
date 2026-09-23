@@ -41,13 +41,25 @@
         <td>Приватное для модуля (без <code>export</code>).</td>
       </tr>
       <tr>
+        <td><strong>функция (func)</strong></td>
+        <td>Объявляется словом <code>func</code>. Типы аргументов и результата пишутся
+        <em>после</em> имени. Может возвращать несколько значений: <code>(T, error)</code>.</td>
+        <td><code>function</code>, но с множественным возвратом из коробки.</td>
+      </tr>
+      <tr>
+        <td><strong>короткое объявление (<code>:=</code>)</strong></td>
+        <td>Объявить и присвоить переменную с выводом типа: <code>x := 5</code>. Работает
+        только внутри функций. На уровне пакета — <code>var</code>.</td>
+        <td>Как <code>const</code>/<code>let</code> с выводом типа, но без ключевого слова.</td>
+      </tr>
+      <tr>
         <td><strong>структура (struct)</strong></td>
         <td>Тип, объединяющий именованные поля. Главная форма данных в Go.</td>
         <td>Как тип-объект (<code>interface</code>) + сам объект.</td>
       </tr>
       <tr>
         <td><strong>ресивер метода</strong></td>
-        <td><code>(b Banner)</code> или <code>(b *Banner)</code> перед именем метода. По
+        <td><code>(u User)</code> или <code>(u *User)</code> перед именем метода. По
         значению = работает с копией; по указателю = может менять оригинал.</td>
         <td><code>this</code>, но копия-или-ссылка выбирается явно.</td>
       </tr>
@@ -104,7 +116,8 @@
 
 <footer>
   <a href="../index.html">← На главную курса</a>
-  <a href="../lessons/0001-packages-modules-visibility.html">Урок 1</a>
+  <a href="../lessons/0001-go-syntax.html">Урок 1</a>
+  <a href="syllabus.html">Программа</a>
 </footer>
 </body>
 </html>
