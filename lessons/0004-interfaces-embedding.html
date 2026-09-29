@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок 4 · Интерфейсы и embedding</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<header>
+  <p class="kicker"><a href="../index.html">← Главная</a> · Блок A · Урок 4</p>
+  <h1>Интерфейсы и embedding — композиция вместо наследования</h1>
+  <p class="lede">В Go нет классов и <code>extends</code>. Поведение описывают
+  <strong>маленькие интерфейсы</strong>, а типы реализуют их <em>неявно</em> — просто имея
+  нужные методы. А переиспользовать код между структурами помогает
+  <strong>embedding</strong> — встраивание одной структуры в другую.</p>
+</header>
+
+<main>
+  <div class="win">
+    <span class="callout-title">Что ты сможешь после урока</span>
+    Объявить маленький интерфейс, написать функцию, которая принимает интерфейс (а не
+    конкретный тип), и встроить одну структуру в другую, чтобы переиспользовать её поля
+    и методы.
+  </div>
+
+  <p class="hint">💡 В тёмных блоках жми <strong>▶ Запустить</strong> — Go выполнится в
+  браузере. Код можно менять прямо в поле.</p>
+
+  <div class="note">
+    <span class="callout-title">Быстрый повтор Уроков 2–3</span>
+    Помнишь развилку <code>(u User)</code> vs <code>(u *User)</code> из Урока 2? Сегодня
+    она вернётся с новым эффектом: от неё зависит, реализует ли тип интерфейс. И
+    <code>range</code> по слайсу (Урок 3) сегодня пригодится для задачи.
+  </div>
+
+  <h2>1. Интерфейс — список сигнатур, реализация неявная</h2>
+  <p>Интерфейс — это просто список методов. Тип «реализует» его автоматически, если у
+  него есть все эти методы. Слова <code>implements</code> в Go нет.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type Greeter interface {
+    Greet() string
+}
+
+type User struct {
+    Name string
+}
+
+func (u User) Greet() string {
+    return "Привет, " + u.Name
+}
+
+func SayHello(g Greeter) {   // принимает ЛЮБОЙ тип с методом Greet
+    fmt.Println(g.Greet())
+}
+
+func main() {
+    u := User{Name: "Костя"}
+    SayHello(u)   // User реализует Greeter просто потому, что есть метод Greet
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Если пришёл из TS</span>
+    В TS ты обычно пишешь <code>class Foo implements Bar</code> — связь явная. В Go
+    связи вообще нет: компилятор сам видит, что у <code>User</code> есть <code>Greet()</code>,
+    и этого достаточно. Поэтому в Go интерфейсы держат <strong>маленькими</strong>
+    (1–2 метода) и следуют правилу «принимай интерфейсы, возвращай структуры».
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Что нужно написать у типа <code>User</code>, чтобы он реализовывал <code>Greeter</code>?</p>
+    <button>строку <code>implements Greeter</code></button>
+    <button>ничего специального — просто нужен метод с такой сигнатурой</button>
+    <button>встроить <code>Greeter</code> в структуру</button>
+    <button>написать отдельный adapter-тип</button>
+    <p class="fb" data-ok="Да — реализация неявная. Есть метод Greet() string — тип уже удовлетворяет интерфейсу." data-no="Нет: в Go нет ключевого слова implements. Достаточно, чтобы у типа был метод с такой же сигнатурой."></p>
+  </div>
+
+  <h2>2. Развилка снова о себе напоминает 🔑</h2>
+  <p>Метод на <strong>указателе</strong> (<code>*T</code>) — реализует интерфейс только
+  <code>*T</code>. Значение <code>T</code> само по себе — нет. Метод на значении
+  (<code>T</code>) — реализуют оба.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type Greeter interface {
+    Greet() string
+}
+
+type Robot struct {
+    Name string
+}
+
+// ресивер по указателю
+func (r *Robot) Greet() string {
+    return "Бип, " + r.Name
+}
+
+func SayHello(g Greeter) {
+    fmt.Println(g.Greet())
+}
+
+func main() {
+    r := Robot{Name: "R2D2"}
+    // SayHello(r)     // не скомпилируется: Robot (значение) не реализует Greeter
+    SayHello(&r)        // а *Robot — реализует
+}
+</textarea>
+  </div>
+
+  <div class="warn">
+    <span class="callout-title">Рефлекс #2, ещё один поворот</span>
+    В Уроке 2 было правило «не мешай ресиверы у одного типа — если хоть один метод на
+    <code>*T</code>, делай все на <code>*T</code>». Теперь понятно ещё и почему: если
+    смешать, то тип будет удовлетворять интерфейсу то через значение, то только через
+    указатель — и это заметишь только когда компилятор откажется передавать значение
+    туда, где ждут интерфейс.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Метод объявлен как <code>func (r *Robot) Greet() string</code>. Какой вызов скомпилируется?</p>
+    <button><code>SayHello(r)</code>, где <code>r := Robot{...}</code></button>
+    <button><code>SayHello(&amp;r)</code></button>
+    <button>оба варианта</button>
+    <button>ни один</button>
+    <p class="fb" data-ok="Да — метод на *Robot, значит интерфейсу удовлетворяет только *Robot." data-no="Нет: метод определён на *Robot. Значение Robot (без &amp;) интерфейсу Greeter не удовлетворяет — компилятор откажет."></p>
+  </div>
+
+  <h2>3. Embedding — переиспользование без наследования</h2>
+  <p>Встроишь один тип в структуру без имени поля — его поля и методы «поднимутся» на
+  внешний тип напрямую.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type Base struct {
+    ID int
+}
+
+func (b Base) Describe() string {
+    return fmt.Sprintf("id=%d", b.ID)
+}
+
+type Article struct {
+    Base         // embedding — без имени поля
+    Title string
+}
+
+func main() {
+    a := Article{Base: Base{ID: 1}, Title: "Go интерфейсы"}
+    fmt.Println(a.Describe())    // метод Base «поднялся» на Article
+    fmt.Println(a.ID, a.Title)   // поле ID тоже видно напрямую, без a.Base.ID
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Если пришёл из TS</span>
+    Похоже на <code>extends</code>, но это не наследование: <code>Article</code> —
+    не подтип <code>Base</code>, нет полиморфизма и виртуальных методов. Это просто
+    «внутри Article лежит Base, и его поля/методы видно напрямую» — композиция,
+    а не иерархия типов.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Article встраивает Base. Что будет, если у Article тоже объявить свой метод <code>Describe()</code>?</p>
+    <button>ошибка компиляции — конфликт имён</button>
+    <button>Article.Describe() перекроет (shadow) Base.Describe() при вызове через Article</button>
+    <button>вызовутся оба метода сразу</button>
+    <button>всегда вызовется Base.Describe(), Article игнорируется</button>
+    <p class="fb" data-ok="Да — свой метод на внешнем типе просто перекрывает поднятый. Это shadowing, не override (нет виртуальности)." data-no="Нет: конфликта нет. Метод, объявленный прямо на Article, перекрывает поднятый из Base — но это статическое перекрытие, не полиморфизм."></p>
+  </div>
+
+  <div class="task">
+    <span class="badge">Твоя очередь</span>
+    <h3>Фигуры и общая площадь</h3>
+    <p>В поле ниже: допиши метод <code>Area()</code> для <code>Circle</code> (площадь круга
+    = <code>3.14 * R * R</code>), чтобы он реализовывал интерфейс <code>Shape</code>.
+    <code>TotalArea</code> уже собирает сумму через <code>range</code> (привет, Урок 3) по
+    слайсу интерфейсов. Цель: <code>9.14</code>.</p>
+    <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+type Shape interface {
+    Area() float64
+}
+
+type Rectangle struct {
+    W, H float64
+}
+
+func (r Rectangle) Area() float64 {
+    return r.W * r.H
+}
+
+type Circle struct {
+    R float64
+}
+
+// <- допиши метод Area() для Circle
+
+func TotalArea(shapes []Shape) float64 {
+    total := 0.0
+    for _, s := range shapes {
+        total += s.Area()
+    }
+    return total
+}
+
+func main() {
+    shapes := []Shape{
+        Rectangle{W: 2, H: 3},
+        Circle{R: 1},
+    }
+    fmt.Println(TotalArea(shapes))   // цель: 9.14
+}
+</textarea>
+    </div>
+    <p class="hint">Застрял — спроси учителя в чате.</p>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Эталонный источник</span>
+    <a href="https://go.dev/tour/methods/9">A Tour of Go — Interfaces</a> и раздел
+    «Embedding» в <a href="https://go.dev/doc/effective_go">Effective Go</a>.
+  </div>
+
+  <hr>
+  <p><strong>Термины урока</strong> — в <a href="../reference/glossary.html">глоссарии</a>:
+  интерфейс, встраивание (embedding). <strong>Спроси учителя</strong> в чате по любому
+  непонятному месту — я для этого здесь.</p>
+</main>
+
+<footer>
+  <a href="0003-slices-maps.html">← Урок 3</a>
+  <a href="../index.html">Главная</a>
+  <a href="../reference/glossary.html">Глоссарий</a>
+  <a href="0005-errors-deep-dive.html">Урок 5 — Ошибки →</a>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sandbox.js"></script>
+</body>
+</html>

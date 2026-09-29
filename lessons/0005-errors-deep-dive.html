@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок 5 · Ошибки — обёртывание, Is/As, свои типы</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<header>
+  <p class="kicker"><a href="../index.html">← Главная</a> · Блок A · Урок 5</p>
+  <h1>Ошибки — обёртывание, errors.Is/As, свои типы</h1>
+  <p class="lede">Рефлекс #1 — «ошибки это значения» — ты уже знаешь с Урока 1. Но
+  <code>if err != nil</code> — это только начало. На бэкенде нужно ещё: добавить контекст
+  к ошибке, не потеряв исходную; отличить «не нашли» от «сломалось»; и прочитать детали
+  из своей ошибки. Для этого — обёртывание, <code>errors.Is</code>, <code>errors.As</code>.</p>
+</header>
+
+<main>
+  <div class="win">
+    <span class="callout-title">Что ты сможешь после урока</span>
+    Обернуть ошибку контекстом через <code>%w</code>, проверить конкретную ошибку в
+    цепочке через <code>errors.Is</code>, и достать свой тип ошибки через
+    <code>errors.As</code>, чтобы прочитать его поля.
+  </div>
+
+  <p class="hint">💡 В тёмных блоках жми <strong>▶ Запустить</strong> — Go выполнится в
+  браузере. Код можно менять прямо в поле.</p>
+
+  <div class="note">
+    <span class="callout-title">Быстрый повтор Уроков 1 и 4</span>
+    Урок 1: ошибка — это просто значение, проверяем через <code>if err != nil</code>, без
+    <code>try/catch</code>. Урок 4: <code>error</code> — тоже интерфейс, всего с одним
+    методом <code>Error() string</code>. Сегодня своя структура-ошибка это использует
+    напрямую.
+  </div>
+
+  <h2>1. Обёртывание: <code>%w</code> сохраняет исходную ошибку</h2>
+  <p><code>fmt.Errorf("...: %w", err)</code> добавляет контекст, но не «прячет» исходную
+  ошибку — её можно достать позже через <code>errors.Unwrap</code> или найти через
+  <code>errors.Is</code>/<code>errors.As</code>.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+func readConfig() error {
+    return errors.New("файл не найден")
+}
+
+func loadApp() error {
+    if err := readConfig(); err != nil {
+        return fmt.Errorf("загрузка приложения: %w", err)  // %w — обернуть, сохранив связь
+    }
+    return nil
+}
+
+func main() {
+    err := loadApp()
+    fmt.Println(err)                  // "загрузка приложения: файл не найден"
+    fmt.Println(errors.Unwrap(err))   // достаём исходную: "файл не найден"
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Если пришёл из TS</span>
+    Похоже на <code>throw new Error("контекст", { cause: err })</code> (ES2022) — тоже
+    сохраняет причину. Отличие: в Go есть более старый способ напечатать ошибку без связи
+    — <code>%v</code> вместо <code>%w</code>. Текст будет тот же самый, но
+    <code>errors.Is</code>/<code>errors.As</code> после <code>%v</code> уже не найдут
+    исходную ошибку — связь потеряна.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Чем <code>fmt.Errorf("...: %v", err)</code> отличается от <code>fmt.Errorf("...: %w", err)</code>?</p>
+    <button>ничем, оба варианта одинаково оборачивают</button>
+    <button><code>%v</code> просто вставляет текст, <code>%w</code> ещё и сохраняет связь для errors.Is/As</button>
+    <button><code>%w</code> работает быстрее</button>
+    <button><code>%v</code> работает только со строками</button>
+    <p class="fb" data-ok="Да — %v даёт тот же текст, но рвёт цепочку: errors.Is/As её уже не увидят. %w сохраняет ссылку на исходную ошибку." data-no="Нет: текст будет одинаковым в обоих случаях. Разница — в связи: только %w позволяет errors.Unwrap/Is/As дойти до исходной ошибки."></p>
+  </div>
+
+  <h2>2. Sentinel-ошибка + <code>errors.Is</code></h2>
+  <p>Sentinel — это ошибка-константа уровня пакета (<code>var ErrX = errors.New(...)</code>),
+  которую сравнивают не через <code>==</code>, а через <code>errors.Is</code> — она умеет
+  разворачивать цепочку обёрток.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+var ErrNotFound = errors.New("не найдено")   // sentinel — сравниваем через errors.Is
+
+func findUser(id int) error {
+    if id != 1 {
+        return fmt.Errorf("findUser(%d): %w", id, ErrNotFound)
+    }
+    return nil
+}
+
+func main() {
+    err := findUser(42)
+    fmt.Println(err)
+
+    if errors.Is(err, ErrNotFound) {   // ищет ErrNotFound по всей цепочке обёрток
+        fmt.Println("это ошибка «не найдено»")
+    }
+
+    fmt.Println(err == ErrNotFound)    // false! err — это обёртка, а не сам ErrNotFound
+}
+</textarea>
+  </div>
+
+  <div class="warn">
+    <span class="callout-title">Рефлекс #1, ещё один поворот</span>
+    <code>==</code> сравнивает ошибку буквально — а обёрнутая ошибка это уже другое
+    значение (обёртка поверх). <code>errors.Is</code> разворачивает цепочку через
+    <code>Unwrap</code> и ищет совпадение внутри. Поэтому для sentinel-ошибок в
+    идиоматичном Go — всегда <code>errors.Is</code>, никогда <code>==</code>.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q"><code>err</code> обёрнут через <code>%w</code> вокруг <code>ErrNotFound</code>. Как правильно проверить, что внутри именно она?</p>
+    <button><code>err == ErrNotFound</code></button>
+    <button><code>errors.Is(err, ErrNotFound)</code></button>
+    <button><code>err.Error() == ErrNotFound.Error()</code></button>
+    <button><code>errors.As(err, ErrNotFound)</code></button>
+    <p class="fb" data-ok="Да — errors.Is идёт по цепочке обёрток и находит ErrNotFound внутри." data-no="Нет: == не разворачивает обёртку, сравнение строк — хрупкий хак, а errors.As — для типов, не для sentinel-значений. Нужен errors.Is."></p>
+  </div>
+
+  <h2>3. Свой тип ошибки + <code>errors.As</code></h2>
+  <p><code>error</code> — это интерфейс с одним методом (Урок 4). Значит своя структура
+  с методом <code>Error() string</code> тоже является ошибкой — и может нести
+  дополнительные поля.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+type ValidationError struct {
+    Field string
+}
+
+func (e *ValidationError) Error() string {   // реализует интерфейс error (Урок 4)
+    return fmt.Sprintf("поле %q невалидно", e.Field)
+}
+
+func validate(age int) error {
+    if age < 0 {
+        return &ValidationError{Field: "age"}
+    }
+    return nil
+}
+
+func main() {
+    err := validate(-1)
+
+    var ve *ValidationError
+    if errors.As(err, &ve) {   // достаёт из цепочки ошибку нужного ТИПА
+        fmt.Println("проблема с полем:", ve.Field)
+    }
+}
+</textarea>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Is vs As — когда что</span>
+    <code>errors.Is(err, ErrX)</code> — «это конкретно та же ошибка (или обёртка над
+    ней)?» — для sentinel-значений. <code>errors.As(err, &amp;target)</code> — «есть ли в
+    цепочке ошибка вот такого ТИПА, и если да — дай мне её, чтобы прочитать поля» — для
+    своих структур-ошибок с данными внутри.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Зачем нужен <code>errors.As</code>, если уже есть <code>errors.Is</code>?</p>
+    <button>это то же самое, просто другое имя</button>
+    <button><code>errors.Is</code> проверяет совпадение конкретного значения, <code>errors.As</code> достаёт из цепочки ошибку нужного типа, чтобы прочитать её поля</button>
+    <button><code>errors.As</code> работает только с sentinel-ошибками</button>
+    <button><code>errors.As</code> быстрее, чем <code>errors.Is</code></button>
+    <p class="fb" data-ok="Да — As достаёт ошибку по типу и даёт доступ к её полям (Field и т.п.), Is только отвечает true/false." data-no="Нет: это разные задачи. Is — «совпадает ли с конкретным sentinel-значением», As — «есть ли ошибка такого типа, дай её сюда, чтобы прочитать поля»."></p>
+  </div>
+
+  <div class="task">
+    <span class="badge">Твоя очередь</span>
+    <h3>Хранилище с ошибкой «не найдено»</h3>
+    <p>В поле ниже: в методе <code>Get</code> допиши возврат обёрнутой ошибки через
+    <code>fmt.Errorf</code> с <code>%w</code> вокруг <code>ErrNotFound</code>, когда ключа
+    нет в мапе (привет, Урок 3 — comma-ok). Цель: программа печатает «верно поймали».</p>
+    <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+var ErrNotFound = errors.New("запись не найдена")
+
+type memStore struct {
+    data map[int]string
+}
+
+func (s *memStore) Get(id int) (string, error) {
+    v, ok := s.data[id]
+    if !ok {
+        // <- допиши: return "", fmt.Errorf(..., %w вокруг ErrNotFound)
+    }
+    return v, nil
+}
+
+func main() {
+    s := &memStore{data: map[int]string{1: "Костя"}}
+
+    _, err := s.Get(2)
+    if errors.Is(err, ErrNotFound) {
+        fmt.Println("верно поймали: не найдено")
+    } else {
+        fmt.Println("не поймали — допиши Get")
+    }
+}
+</textarea>
+    </div>
+    <p class="hint">Застрял — спроси учителя в чате.</p>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Эталонный источник</span>
+    <a href="https://go.dev/blog/go1.13-errors">Go blog: Working with Errors in Go 1.13</a> —
+    официальное введение <code>%w</code>, <code>errors.Is/As</code>. Плюс глава про ошибки
+    в <a href="https://100go.co/">100 Go Mistakes</a>.
+  </div>
+
+  <hr>
+  <p><strong>Термины урока</strong> — в <a href="../reference/glossary.html">глоссарии</a>:
+  обёртывание ошибки, <code>errors.Is</code>/<code>errors.As</code>, sentinel-ошибка.
+  <strong>Спроси учителя</strong> в чате по любому непонятному месту — я для этого здесь.</p>
+</main>
+
+<footer>
+  <a href="0004-interfaces-embedding.html">← Урок 4</a>
+  <a href="../index.html">Главная</a>
+  <a href="../reference/glossary.html">Глоссарий</a>
+  <span class="uk">Дальше: Урок 6 — Конкурентность (скоро)</span>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sandbox.js"></script>
+</body>
+</html>

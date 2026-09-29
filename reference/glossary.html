@@ -87,16 +87,59 @@
         <td><code>Map</code> / <code>Record</code>; приём со struct{} = <code>Set</code>.</td>
       </tr>
       <tr>
+        <td><strong>comma-ok</strong></td>
+        <td>Идиома <code>v, ok := m[key]</code>: <code>ok</code> = <code>true</code>, если
+        ключ реально есть. Отличает «есть, но zero value» от «ключа нет».</td>
+        <td>Аналог <code>map.has(key)</code>, но за один шаг с чтением значения.</td>
+      </tr>
+      <tr>
+        <td><strong>range</strong></td>
+        <td>Перебор слайса/мапы/канала в <code>for</code>: <code>for i, v := range s</code>.
+        У слайса порядок стабильный, у мапы — рандомизирован намеренно.</td>
+        <td>Как <code>for...of</code> / <code>Object.entries</code>, но без гарантии порядка
+        для мап.</td>
+      </tr>
+      <tr>
         <td><strong>интерфейс (interface)</strong></td>
         <td>Список сигнатур методов. Тип удовлетворяет ему просто потому, что имеет эти
-        методы — без слова <code>implements</code>.</td>
+        методы — без слова <code>implements</code>. Метод на <code>*T</code> — интерфейсу
+        удовлетворяет только <code>*T</code>, не <code>T</code>.</td>
         <td>Структурная типизация (как интерфейсы TS), но для методов.</td>
       </tr>
       <tr>
+        <td><strong>встраивание (embedding)</strong></td>
+        <td>Тип без имени поля внутри структуры: его поля и методы «поднимаются» на
+        внешний тип. Композиция, не наследование — нет полиморфизма/override.</td>
+        <td>Похоже на <code>extends</code> по эффекту (переиспользование), но без иерархии
+        типов и виртуальных методов.</td>
+      </tr>
+      <tr>
         <td><strong>ошибка (error)</strong></td>
-        <td>Встроенный интерфейс. Ошибки <em>возвращаются</em> как значения, проверяются
-        через <code>if err != nil</code>. Нет throw/catch.</td>
+        <td>Встроенный интерфейс с одним методом <code>Error() string</code>. Ошибки
+        <em>возвращаются</em> как значения, проверяются через <code>if err != nil</code>.
+        Нет throw/catch.</td>
         <td>Противоположность <code>try/catch</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>обёртывание ошибки (<code>%w</code>)</strong></td>
+        <td><code>fmt.Errorf("...: %w", err)</code> — добавляет контекст, но сохраняет
+        связь с исходной ошибкой (в отличие от <code>%v</code>).</td>
+        <td>Похоже на <code>new Error(msg, { cause: err })</code> (ES2022).</td>
+      </tr>
+      <tr>
+        <td><strong>errors.Is / errors.As</strong></td>
+        <td><code>Is(err, ErrX)</code> — совпадает ли с конкретным sentinel-значением по
+        всей цепочке обёрток. <code>As(err, &amp;target)</code> — достать ошибку нужного
+        типа из цепочки, чтобы прочитать её поля.</td>
+        <td>Прямой аналогии нет; ближе всего — проверка типа через <code>instanceof</code>
+        в цепочке причин.</td>
+      </tr>
+      <tr>
+        <td><strong>sentinel-ошибка</strong></td>
+        <td><code>var ErrX = errors.New("...")</code> — ошибка-константа уровня пакета.
+        Сравнивают через <code>errors.Is</code>, не через <code>==</code> (обёртка меняет
+        значение).</td>
+        <td>Как фиксированный код/тип ошибки, но само значение и есть идентификатор.</td>
       </tr>
       <tr>
         <td><strong>defer</strong></td>
@@ -118,6 +161,9 @@
   <a href="../index.html">← На главную курса</a>
   <a href="../lessons/0001-go-syntax.html">Урок 1</a>
   <a href="../lessons/0002-structs-methods.html">Урок 2</a>
+  <a href="../lessons/0003-slices-maps.html">Урок 3</a>
+  <a href="../lessons/0004-interfaces-embedding.html">Урок 4</a>
+  <a href="../lessons/0005-errors-deep-dive.html">Урок 5</a>
   <a href="syllabus.html">Программа</a>
 </footer>
 </body>

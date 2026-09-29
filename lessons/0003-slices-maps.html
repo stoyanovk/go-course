@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Урок 3 · Слайсы и мапы</title>
+<link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+<header>
+  <p class="kicker"><a href="../index.html">← Главная</a> · Блок A · Урок 3</p>
+  <h1>Слайсы и мапы — динамические данные</h1>
+  <p class="lede">Структуры (Урок 2) — это <strong>форма</strong> одной записи. А как хранить
+  <strong>много</strong> записей или искать по ключу? В Go для этого два встроенных типа:
+  <strong>слайс</strong> (растущий список) и <strong>мапа</strong> (аналог словаря/<code>dict</code>
+  из Python, или <code>Map</code>/<code>Record</code> из TS). И у обоих есть свои острые углы.</p>
+</header>
+
+<main>
+  <div class="win">
+    <span class="callout-title">Что ты сможешь после урока</span>
+    Объявить и наполнить <strong>слайс</strong> через <code>append</code>, объявить и
+    наполнить <strong>мапу</strong>, проверить наличие ключа через <strong>comma-ok</strong>,
+    и не попасться на то, что слайсы иногда делят один массив между собой.
+  </div>
+
+  <p class="hint">💡 В тёмных блоках жми <strong>▶ Запустить</strong> — Go выполнится в
+  браузере. Код можно менять прямо в поле.</p>
+
+  <div class="note">
+    <span class="callout-title">Быстрый повтор Уроков 1–2</span>
+    <code>zero value</code> (Урок 1) сейчас снова пригодится: у слайса и мапы тоже есть
+    zero value — <code>nil</code>. И рефлекс #2 «значения копируются» (Урок 2, указатель vs
+    значение) сегодня получит неожиданный поворот.
+  </div>
+
+  <h2>1. Слайс — растущий список</h2>
+  <p>Слайс — это <code>[]T</code>: аналог <code>Array&lt;T&gt;</code> из TS, но умеет расти
+  через встроенную функцию <code>append</code>. Важно: <code>append</code> возвращает
+  <strong>новый</strong> слайс — результат надо переприсвоить.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+func main() {
+    var s []int                // zero value слайса — nil, а не ошибка
+    fmt.Println(s, len(s), s == nil)
+
+    s = append(s, 10, 20, 30)  // append вернул НОВЫЙ слайс — переприсвоили s
+    fmt.Println(s, len(s))
+
+    nums := []int{1, 2, 3}     // литерал — сразу с элементами
+    fmt.Println(nums)
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Если пришёл из TS</span>
+    В TS <code>arr.push(x)</code> меняет массив на месте и ничего не возвращает (ну, длину).
+    В Go <code>append(s, x)</code> ничего не меняет «на месте» — он возвращает результат,
+    который нужно сохранить: <code>s = append(s, x)</code>. Забыл переприсвоить — данные
+    потерялись.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Что выведет вот такой код: <code>s := []int{1,2}; append(s, 3); fmt.Println(s)</code>?</p>
+    <button>[1 2 3]</button>
+    <button>[1 2]</button>
+    <button>ошибка компиляции</button>
+    <button>паника в рантайме</button>
+    <p class="fb" data-ok="Да — append вернул новый слайс [1 2 3], но его никто не сохранил. s остался [1 2]." data-no="Нет: append не меняет s «на месте». Результат [1 2 3] потерян, потому что его не присвоили обратно в s."></p>
+  </div>
+
+  <h2>2. Развилка урока: слайсы делят массив 🔑</h2>
+  <p>Слайс — это не сам массив, а «окно» в него: указатель + длина + вместимость
+  (<code>cap</code>). Возьмёшь срез от существующего слайса — окно смотрит на
+  <strong>тот же</strong> массив.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+func main() {
+    a := []int{1, 2, 3, 4, 5}
+    b := a[1:3]          // b смотрит на тот же массив, что и a
+
+    b[0] = 99             // меняем через b...
+    fmt.Println(a)        // ...а видно и в a!
+
+    fmt.Println(len(b), cap(b))  // у b есть ещё место в общем массиве
+    b = append(b, 100)           // хватило места в cap — задело и a
+    fmt.Println(a, b)
+}
+</textarea>
+  </div>
+
+  <div class="warn">
+    <span class="callout-title">Рефлекс #2, неожиданный поворот</span>
+    В Уроке 2 ты выучил: структура копируется по значению, если не взять <code>*T</code>.
+    Слайс тоже «копируется» при присваивании — но копируется только его <strong>заголовок</strong>
+    (указатель на массив + длина + cap). Сам массив внутри — <strong>общий</strong>. Поэтому
+    <code>b[0] = 99</code> видно и через <code>a</code>. А вот если <code>append</code> выходит
+    за <code>cap</code> — Go выделяет новый массив, и связь между <code>a</code> и <code>b</code>
+    рвётся. Это источник багов «почему у меня одно скопировалось, а другое — нет».
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q"><code>b := a[1:3]</code> — на что смотрит <code>b</code>?</p>
+    <button>на независимую копию элементов a</button>
+    <button>на тот же underlying-массив, что и a</button>
+    <button>на указатель на a целиком</button>
+    <button>ни на что, пока не вызван append</button>
+    <p class="fb" data-ok="Да — срез делит массив с оригиналом, пока не сработал append с реаллокацией." data-no="Нет: срез — не копия. b и a смотрят на один и тот же массив в памяти, пока append не заставит Go выделить новый."></p>
+  </div>
+
+  <h2>3. Мапа — ключ → значение</h2>
+  <p>Мапа — это <code>map[K]V</code>: то, что в Python — <code>dict</code>, в TS — <code>Map</code>
+  или объект-<code>Record&lt;K, V&gt;</code>. Но её zero value — тоже <code>nil</code>, и с ним
+  есть подвох: <strong>читать</strong> из nil-мапы можно, а <strong>писать</strong> — паника.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+func main() {
+    var m map[string]int         // nil map — zero value
+    fmt.Println(m == nil, len(m), m["x"])  // читать можно: вернёт zero value (0)
+    // m["x"] = 1                // а вот это паникует — раскомментируй и запусти
+
+    ages := map[string]int{"Костя": 33, "гость": 0}  // литерал — сразу можно писать
+    ages["новый"] = 1
+    fmt.Println(ages)
+
+    age, ok := ages["Костя"]     // comma-ok: узнать, есть ли ключ на самом деле
+    fmt.Println(age, ok)
+
+    _, ok2 := ages["нет такого"]
+    fmt.Println(ok2)             // false — ключа нет
+
+    delete(ages, "гость")
+    fmt.Println(ages)
+}
+</textarea>
+  </div>
+
+  <div class="js">
+    <span class="callout-title">Если пришёл из TS/Python</span>
+    В JS/Python пустой объект/<code>dict</code> всегда можно создать и сразу писать в него.
+    В Go <code>nil</code>-мапа для чтения ведёт себя как пустая, а для записи —
+    <strong>паникует в рантайме</strong>. Поэтому мапу почти всегда создают через литерал
+    <code>{}</code> или <code>make(map[K]V)</code>, а не через <code>var</code>.
+  </div>
+
+  <div class="quiz" data-answer="1">
+    <p class="q">Что будет, если писать в nil-мапу: <code>var m map[string]int; m["x"] = 1</code>?</p>
+    <button>запишется как обычно</button>
+    <button>паника в рантайме</button>
+    <button>тихо проигнорируется</button>
+    <button>ошибка компиляции</button>
+    <p class="fb" data-ok="Да — nil-мапа читается нормально, но запись в неё паникует. Нужен литерал {} или make()." data-no="Нет: компилируется нормально, но при запуске m[&quot;x&quot;] = 1 паникует, потому что мапа nil."></p>
+  </div>
+
+  <h2>4. <code>range</code> и порядок мапы</h2>
+  <p>Перебор через <code>range</code> работает и для слайсов, и для мап — но с разницей: у
+  слайса порядок предсказуемый (по индексу), у мапы — <strong>специально рандомизирован</strong>
+  Go в рантайме.</p>
+
+  <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+func main() {
+    nums := []int{10, 20, 30}
+    for i, v := range nums {
+        fmt.Println("slice:", i, v)   // порядок всегда 0,1,2
+    }
+
+    ages := map[string]int{"a": 1, "b": 2, "c": 3}
+    for k, v := range ages {
+        fmt.Println("map:", k, v)     // порядок каждый запуск разный!
+    }
+}
+</textarea>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Зачем это на бэкенде</span>
+    Нужен стабильный порядок вывода мапы (например, для JSON-ответа) — собери ключи в
+    слайс и отсортируй (<code>sort.Strings</code>). Полагаться на «естественный» порядок
+    мапы — баг, который то есть, то нет.
+  </div>
+
+  <div class="task">
+    <span class="badge">Твоя очередь</span>
+    <h3>Счётчик частоты</h3>
+    <p>В поле ниже: досчитай, сколько раз встречается каждое слово в <code>words</code>, и
+    сложи результат в мапу <code>counts</code>. Подсказка: <code>counts[w]++</code> работает,
+    даже если ключа <code>w</code> ещё нет — сработает zero value (<code>0</code>) из Урока 1,
+    плюс единица. Цель: <code>go=3 js=2 ts=1</code>.</p>
+    <div class="sandbox">
+<textarea spellcheck="false">
+package main
+
+import "fmt"
+
+func main() {
+    words := []string{"go", "js", "go", "ts", "go", "js"}
+
+    counts := map[string]int{}
+
+    // <- допиши: пройдись range по words и посчитай counts[w]
+
+    fmt.Println("go=" + fmt.Sprint(counts["go"]))
+    fmt.Println("js=" + fmt.Sprint(counts["js"]))
+    fmt.Println("ts=" + fmt.Sprint(counts["ts"]))
+}
+</textarea>
+    </div>
+    <p class="hint">Застрял — спроси учителя в чате.</p>
+  </div>
+
+  <div class="note">
+    <span class="callout-title">Эталонный источник</span>
+    <a href="https://go.dev/tour/moretypes/7">A Tour of Go — Slices</a> и
+    <a href="https://go.dev/tour/moretypes/19">Maps</a> — короткие запускаемые примеры.
+    Плюс <a href="https://go.dev/blog/slices-intro">Go blog: slices</a> про механику
+    <code>len</code>/<code>cap</code> подробнее, если станет интересно.
+  </div>
+
+  <hr>
+  <p><strong>Термины урока</strong> — в <a href="../reference/glossary.html">глоссарии</a>:
+  слайс, мапа, comma-ok, <code>range</code>. <strong>Спроси учителя</strong> в чате по любому
+  непонятному месту — я для этого здесь.</p>
+</main>
+
+<footer>
+  <a href="0002-structs-methods.html">← Урок 2</a>
+  <a href="../index.html">Главная</a>
+  <a href="../reference/glossary.html">Глоссарий</a>
+  <a href="0004-interfaces-embedding.html">Урок 4 — Интерфейсы и embedding →</a>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+<script src="../assets/sandbox.js"></script>
+</body>
+</html>
